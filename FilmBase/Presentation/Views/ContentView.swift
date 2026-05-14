@@ -23,9 +23,10 @@ struct ContentView: View {
 
             FavoritesView()
                 .tabItem {
-                    Label("Favorites", systemImage: "star")
+                    Label("Favorites", systemImage: "star.fill")
                 }
         }
+        .tint(Color("AccentColor"))
     }
 }
 

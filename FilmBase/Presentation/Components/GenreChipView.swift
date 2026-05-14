@@ -8,11 +8,21 @@
 import SwiftUI
 
 struct GenreChipView: View {
+    let title: String
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        Text(title)
+            .font(.caption)
+            .fontWeight(.semibold)
+            .foregroundStyle(Color("PrimaryText"))
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(Color("CardBackground"))
+            .clipShape(Capsule())
     }
 }
 
 #Preview {
-    GenreChipView()
+    GenreChipView(title: "Action")
+        .background(Color("AppBackground"))
 }

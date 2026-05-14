@@ -8,22 +8,23 @@ import SwiftUI
 
 struct MovieCardView: View {
     let movie: Movie
+    let isFavorite: Bool
+    let onFavoriteTap: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 14) {
             
-            AsyncImage(url: movie.posterURL) { phase in
-                switch phase {
-                case .empty:
-                    placeholder
-                case .success(let image):
-                    image
-                        .resizable()
-                        .scaledToFill()
-                case .failure:
-                    placeholder
-                @unknown default:
-                    placeholder
+            CachedAsyncImage(url: movie.posterURL) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+            } placeholder: {
+                ZStack {
+                    Color("CardBackground")
+                    
+                    Image(systemName: "film")
+                        .font(.title2)
+                        .foregroundStyle(Color("SecondaryText"))
                 }
             }
             .frame(width: 85, height: 125)
@@ -56,6 +57,22 @@ struct MovieCardView: View {
             }
             
             Spacer()
+
+            if let onFavoriteTap {
+                Button {
+                    onFavoriteTap()
+                } label: {
+                    Image(systemName: isFavorite ? "star.fill" : "star")
+                        .font(.title3)
+                        .foregroundStyle(Color("AccentGold"))
+                        .scaleEffect(isFavorite ? 1.12 : 1)
+                        .animation(
+                            .easeInOut(duration: 0.18),
+                            value: isFavorite
+                        )
+                }
+                .buttonStyle(.plain)
+            }
         }
         .padding(14)
         .background(
@@ -66,7 +83,18 @@ struct MovieCardView: View {
             RoundedRectangle(cornerRadius: 18)
                 .stroke(Color.white.opacity(0.04))
         )
-        .shadow(color: .black.opacity(0.6), radius: 8, x: 0, y: 4)
+        .shadow(
+            color: Color("AccentColor").opacity(0.12),
+            radius: 16,
+            x: 0,
+            y: 8
+        )
+        .shadow(
+            color: .black.opacity(0.35),
+            radius: 10,
+            x: 0,
+            y: 4
+        )
     }
 
     private var placeholder: some View {
@@ -90,7 +118,9 @@ struct MovieCardView: View {
             backdropPath: nil,
             voteAverage: 8.5,
             releaseDate: "2008-07-18"
-        )
+        ),
+        isFavorite: true,
+        onFavoriteTap: nil
     )
     .padding()
     .background(Color("AppBackground"))

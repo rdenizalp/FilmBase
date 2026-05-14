@@ -10,12 +10,10 @@ import SwiftData
 
 @main
 struct FilmBaseApp: App {
- 
-
     var body: some Scene {
         WindowGroup {
             ContentView()
         }
-        
+        .modelContainer(for: MovieEntity.self)
     }
 }

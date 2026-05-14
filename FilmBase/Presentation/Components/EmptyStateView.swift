@@ -8,11 +8,35 @@
 import SwiftUI
 
 struct EmptyStateView: View {
+    let iconName: String
+    let title: String
+    let message: String
+    
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        VStack(spacing: 12) {
+            Image(systemName: iconName)
+                .font(.largeTitle)
+                .foregroundStyle(Color("SecondaryText"))
+            
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(Color("PrimaryText"))
+            
+            Text(message)
+                .font(.subheadline)
+                .foregroundStyle(Color("SecondaryText"))
+                .multilineTextAlignment(.center)
+        }
+        .padding(.horizontal, 32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 
 #Preview {
-    EmptyStateView()
+    EmptyStateView(
+        iconName: "film",
+        title: "No movies found",
+        message: "Try searching with another title."
+    )
+    .background(Color("AppBackground"))
 }

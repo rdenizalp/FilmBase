@@ -15,6 +15,7 @@ final class SearchViewModel: ObservableObject {
     @Published var movies: [Movie] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var suggestions: [String] = []
     
     private let repository: MovieRepository
     private var searchTask: Task<Void, Never>?
@@ -51,9 +52,31 @@ final class SearchViewModel: ObservableObject {
         do {
             movies = try await repository.searchMovies(query: query)
         } catch {
-            errorMessage = "Failed to search movies."
+            if let networkError = error as? NetworkError {
+                errorMessage = networkError.localizedDescription
+            } else {
+                errorMessage = NetworkError.unknown.localizedDescription
+            }
         }
-        
         isLoading = false
+    }
+    
+    func loadSuggestions() async {
+        do {
+            let movies = try await repository.fetchTrending(page: 1)
+            suggestions = movies
+                .map { $0.title }
+                .prefix(8)
+                .map { String($0) }
+        } catch {
+            suggestions = [
+                "Batman",
+                "Spider-Man",
+                "Dune",
+                "Avengers",
+                "Horror",
+                "Comedy"
+            ]
+        }
     }
 }

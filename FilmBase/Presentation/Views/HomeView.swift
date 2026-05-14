@@ -6,8 +6,14 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct HomeView: View {
+    
+    @Environment(\.modelContext) private var modelContext
+    @Query private var favoriteMovies: [MovieEntity]
+    
+    private let repository: MovieRepository = MovieRepositoryImpl()
     
     @StateObject private var viewModel = HomeViewModel()
     
@@ -16,6 +22,17 @@ struct HomeView: View {
             ZStack {
                 Color("AppBackground")
                     .ignoresSafeArea()
+                
+                RadialGradient(
+                    colors: [
+                        Color("AccentColor").opacity(0.06),
+                        .clear
+                    ],
+                    center: .topTrailing,
+                    startRadius: 20,
+                    endRadius: 420
+                )
+                .ignoresSafeArea()
                 
                 Group {
                     if viewModel.isLoading {
@@ -34,31 +51,22 @@ struct HomeView: View {
                         .background(Color("AppBackground"))
                         
                     } else if let errorMessage = viewModel.errorMessage {
-                        VStack(spacing: 12) {
-                            Image(systemName: "exclamationmark.triangle")
-                                .font(.largeTitle)
-                                .foregroundStyle(Color("AccentGold"))
-                            
-                            Text(errorMessage)
-                                .foregroundStyle(Color("PrimaryText"))
-                            
-                            Button("Try Again") {
-                                Task {
-                                    await viewModel.loadMovies()
-                                }
+                        ErrorView(
+                            title: "Something went wrong",
+                            message: errorMessage,
+                            retryTitle: "Try Again"
+                        ) {
+                            Task {
+                                await viewModel.loadMovies()
                             }
-                            .buttonStyle(.borderedProminent)
                         }
                         
                     } else if viewModel.movies.isEmpty {
-                        VStack(spacing: 12) {
-                            Image(systemName: "film")
-                                .font(.largeTitle)
-                                .foregroundStyle(Color("SecondaryText"))
-                            
-                            Text("No movies found")
-                                .foregroundStyle(Color("PrimaryText"))
-                        }
+                        EmptyStateView(
+                            iconName: "film",
+                            title: "No movies found",
+                            message: "Pull down to refresh or try again later."
+                        )
                         
                     } else {
                         VStack(alignment: .leading, spacing: 10) {
@@ -79,8 +87,15 @@ struct HomeView: View {
                             List {
                                 ForEach(viewModel.movies) { movie in
                                     ZStack {
-                                        MovieCardView(movie: movie)
                                         
+                                        MovieCardView(
+                                            movie: movie,
+                                            isFavorite: isFavorite(movie),
+                                            onFavoriteTap: {
+                                                toggleFavorite(movie)
+                                            }
+                                        )
+                                      
                                         NavigationLink(destination: DetailView(movie: movie)) {
                                             EmptyView()
                                         }
@@ -88,16 +103,46 @@ struct HomeView: View {
                                         .contentShape(Rectangle())
                                         .opacity(0)
                                     }
+                                    .transition(
+                                        .opacity.combined(with: .move(edge: .bottom))
+                                    )
+                                    .swipeActions(edge: .trailing) {
+                                        Button {
+                                            toggleFavorite(movie)
+                                        } label: {
+                                            Label(
+                                                isFavorite(movie) ? "Remove" : "Favorite",
+                                                systemImage: isFavorite(movie) ? "star.slash" : "star.fill"
+                                            )
+                                        }
+                                        .tint(isFavorite(movie) ? .red : Color("AccentGold"))
+                                    }
+                                    .onAppear {
+                                        Task {
+                                            await viewModel.loadMoreMoviesIfNeeded(currentMovie: movie)
+                                        }
+                                    }
                                     .listRowBackground(Color("AppBackground"))
                                     .listRowSeparator(.hidden)
                                     .listRowInsets(
                                         EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)
                                     )
                                 }
+                                if viewModel.isLoadingMore {
+                                    ProgressView()
+                                        .tint(Color("AccentColor"))
+                                        .frame(maxWidth: .infinity)
+                                        .listRowBackground(Color("AppBackground"))
+                                        .listRowSeparator(.hidden)
+                                }
                             }
                             .listStyle(.plain)
                             .scrollContentBackground(.hidden)
                             .background(Color("AppBackground"))
+                            .animation(
+                                .easeInOut(duration: 0.25),
+                                value: viewModel.movies
+                            )
                             .refreshable {
                                 await viewModel.loadMovies()
                             }
@@ -110,8 +155,32 @@ struct HomeView: View {
             await viewModel.loadMovies()
         }
     }
+    
+    private func toggleFavorite(_ movie: Movie) {
+        do {
+            let favorite = isFavorite(movie)
+            
+            if favorite {
+                try repository.removeFavorite(movie, context: modelContext)
+                HapticManager.lightImpact()
+            } else {
+                try repository.addFavorite(movie, context: modelContext)
+                HapticManager.success()
+            }
+        } catch {
+            HapticManager.error()
+            print("Favorite error: \(error)")
+        }
+    }
+    
+    private func isFavorite(_ movie: Movie) -> Bool {
+        favoriteMovies.contains { entity in
+            entity.id == movie.id
+        }
+    }
 }
 
 #Preview {
     HomeView()
+        .modelContainer(for: MovieEntity.self, inMemory: true)
 }
